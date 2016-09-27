@@ -1,0 +1,27 @@
+Introduction
+Our project aims to recognise and track a car by clicking a picture of its number plate. This is super convenienet if you are waiting for you cab to arrive. This 
+
+
+considerations
+1) Trade-off if we are going to do the image recognition of the license plate on the mobile phone or
+on a server
+2) which algorithms are we going to use for extracting the license plate information.
+3) how to make a connection with the server (3g/4g/wifi) 
+
+tasks
+1) make the android application which can be used to:
+	- spot a car.
+	- upload the data. 
+	- receive information about car history.
+	- display this data to the user.
+2) facilitate communication between smartphone and server
+3) implement the license plate recognition
+
+succes criteria
+1) data is sent to the cloud
+2) Data is succesfully processed 
+3) smartphone user is receiving feedback:
+	- was the picture clear enough to process succesfull?	
+	- probability of direction.
+	- timestamp of previous succesfull sighting.
+	- frequency of car being spotted. 

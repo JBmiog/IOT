@@ -1,0 +1,4 @@
+there is an open source Automatic licnse plate recognition library (c++) called openALPR:
+https://github.com/openalpr/openalpr
+Which we could run on a server, maybe upload pictures to the server using dropbox/owncloud or even a twitter account.
+
