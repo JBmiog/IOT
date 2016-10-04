@@ -1,0 +1,36 @@
+introduction
+	- overview of presentation
+	- ecological probem 
+	- related work
+	- proposed solution
+
+soar 
+	- platform
+	- algorithm overview
+	- debris arrival behavior
+	- processing scheme
+	- prototype
+	- performance evaluation
+
+weak points
+	- location data is not mentioned
+	- no analyses of cost of link estimation itself
+	- how frequently is the link estimaiton done ? 
+		- its unknown if there is debris, and how often it should offload
+	- comparison between debris detection algoritms is missings
+	- hybrid processing is not taking into account the time it takes to transmit
+		the data back to the phone
+	- it's missing what to do once debris is detected! 
+	- what if two piles of debris are seen?
+		
+improvements	
+	- 3g 4g is only available in urban areas, what to do once at sea? 
+	- it doesn't clean, only detects debris
+	- using gyroscope for aligning images. 
+	- what happens if battery is nearly done? 
+	- what happens if robot is stuck in debris?
+	- deploy in rough water
+	
+realtion to our project
+	- implement image recognition
+	- set communication with cloud offloading
