@@ -3,7 +3,7 @@ import os
 import re
 import PIL.Image
 from PIL.ExifTags import TAGS, GPSTAGS
-from geopy.geocoders import Nominatim
+from geopy.geocoders import Nominatim 
 
 upload_dir_path = "/home/jeffrey/Dropbox/Camera Uploads/"
 upload_dir_path_no_space = "/home/jeffrey/Dropbox/Camera\ Uploads/"
