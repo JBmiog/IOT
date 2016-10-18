@@ -2,12 +2,12 @@ import time
 import os
 import re
 import PIL.Image
+import csv
 from PIL.ExifTags import TAGS, GPSTAGS
-from geopy.geocoders import Nominatim 
+from geopy.geocoders import Nominatim
 
 upload_dir_path = "/home/jeffrey/Dropbox/Camera Uploads/"
 upload_dir_path_no_space = "/home/jeffrey/Dropbox/Camera\ Uploads/"
-
 
 # https://gist.github.com/erans/983821
 def get_exif_data(image):
@@ -141,17 +141,23 @@ def get_address(lat, lon):
 
 def get_exif(pic_name):
     img = PIL.Image.open(upload_dir_path + pic_name)
-    exif_data = get_exif_data(img)
-    return exif_data
+    exif_d = get_exif_data(img)
+    return exif_d
 
 
-def get_address_by_gps(exif_data):
-    lat, lon = get_lat_lon(exif_data)
-    address = get_address(lat, lon)
-    return address
+def get_address_by_gps(lat, lon):
+    found_address = get_address(lat, lon)
+    return found_address
 
 
-print("IOT-license plate recognition example")
+# function takes a string(comma seperated!)
+# and puts it in the csv file
+def csv_write(list):
+    with open('lp_db.csv', 'a') as csvfile:
+        csv_writer = csv.writer(csvfile, delimiter=',')
+        csv_writer.writerow(list)
+
+
 new_pictures = os.listdir(upload_dir_path)
 # bash and python handle spaces differently,
 # remove all spaces from picture names
@@ -160,23 +166,19 @@ new_pictures = os.listdir(upload_dir_path)
 print("IOT-license plate recognition example")
 for pic_name in new_pictures:
     print(pic_name)
-    full_command = "alpr -c eu " + upload_dir_path_no_space + pic_name
+    full_command = "alpr -n 1 -c eu " + upload_dir_path_no_space + pic_name
     output, err = run_script(full_command)
     output_string = output.decode(encoding='utf-8')
-    print (output_string)
     if "results" in output_string:
         # strip location + time + date
         lp, conf = get_lp_and_confidence(output_string)
+        exif_data = get_exif(pic_name)
+        lat, lon = get_lat_lon(exif_data)
+        address = get_address_by_gps(lat, lon)
+        time = get_time_pic_taken(exif_data)
+        data_list = [lp, conf, lat, lon, address, time]
+        csv_write(data_list)
 
-        exif = get_exif(pic_name)
-        address = get_address_by_gps(exif)
-        time = get_time_pic_taken(exif)
-        print("addres is:")
-        print(address)
-        print("time pic taken is:")
-        print(time)
-
-        # store lp + confidence
         # check if matches data from db
         # notify user
         # put data in .csv
