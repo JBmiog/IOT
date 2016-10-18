@@ -5,6 +5,7 @@ import PIL.Image
 import csv
 from PIL.ExifTags import TAGS, GPSTAGS
 from geopy.geocoders import Nominatim
+from shutil import copyfile
 
 upload_dir_path = "/home/jeffrey/Dropbox/Camera Uploads/"
 upload_dir_path_no_space = "/home/jeffrey/Dropbox/Camera\ Uploads/"
@@ -116,6 +117,15 @@ def remove_spaces():
         os.rename(os.path.join(upload_dir_path, picture_name), os.path.join(upload_dir_path, picture_name.replace(' ', '-')))
 
 
+def rename():
+    pic_list = os.listdir(upload_dir_path)
+    i = 0
+    for picture_name in pic_list:
+        i += 1
+        os.rename(os.path.join(upload_dir_path, picture_name),
+                  os.path.join(upload_dir_path, picture_name.replace(picture_name, str(i)+".jpg")))
+
+
 def get_lp_and_confidence(data):
     # data = "plate0: 10 results \n\t- H786P0J\tconfidence: 89.8356\n\t- H786POJ\t confidence: 87.6114\n"
     line = data.split("\n")
@@ -123,15 +133,13 @@ def get_lp_and_confidence(data):
     conf = re.search('confidence: (.*)', line[1])
     lp_string = lp.group(1)
     conf_float = float(conf.group(1))
-    print(lp_string)
-    print(conf_float)
     return lp_string, conf_float
 
 
 def get_address(lat, lon):
     if (lat != None and lon != None):
         location_string = (str(lat) + ', ' + str(lon))
-        print(location_string)
+        #print(location_string)
         geolocator = Nominatim()
         location = geolocator.reverse(location_string)
         return location.address
@@ -157,30 +165,42 @@ def csv_write(list):
         csv_writer = csv.writer(csvfile, delimiter=',')
         csv_writer.writerow(list)
 
+lp_detected = 0
+lp_n_detected = 0
 
 new_pictures = os.listdir(upload_dir_path)
+
+#for testing purpose, it's easier to find the pic
+rename()
+
 # bash and python handle spaces differently,
 # remove all spaces from picture names
 remove_spaces()
 new_pictures = os.listdir(upload_dir_path)
 print("IOT-license plate recognition example")
 for pic_name in new_pictures:
-    print(pic_name)
-    full_command = "alpr -n 1 -c eu " + upload_dir_path_no_space + pic_name
+
+    full_command = "alpr -n 3 -c eu " + upload_dir_path_no_space + pic_name
     output, err = run_script(full_command)
     output_string = output.decode(encoding='utf-8')
+
     if "results" in output_string:
-        # strip location + time + date
         lp, conf = get_lp_and_confidence(output_string)
         exif_data = get_exif(pic_name)
         lat, lon = get_lat_lon(exif_data)
         address = get_address_by_gps(lat, lon)
         time = get_time_pic_taken(exif_data)
-        data_list = [lp, conf, lat, lon, address, time]
+        data_list = [lp, conf, lat, lon, address, time, pic_name]
         csv_write(data_list)
-
+        lp_detected += 1
+        copyfile(upload_dir_path+pic_name, "/home/jeffrey/PycharmProjects/iot/lp/"+pic_name)
+        print(pic_name + " " + lp + " " + str(conf))
         # check if matches data from db
         # notify user
         # put data in .csv
     else:
-        print(output_string)
+        copyfile(upload_dir_path + pic_name, "/home/jeffrey/PycharmProjects/iot/no_lp/"+pic_name)
+        lp_n_detected +=1
+        print(pic_name + output_string)
+
+print("lp detected = %d, lp_n_detected = %d")%(lp_detected,lp_n_detected)
