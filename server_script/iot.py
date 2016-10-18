@@ -6,8 +6,8 @@ import csv
 from PIL.ExifTags import TAGS, GPSTAGS
 from geopy.geocoders import Nominatim
 
-upload_dir_path = "/home/jeffrey/Dropbox/Camera Uploads/"
-upload_dir_path_no_space = "/home/jeffrey/Dropbox/Camera\ Uploads/"
+upload_dir_path = "/home/dviterig/Downloads/images/"
+upload_dir_path_no_space = "/home/dviterig/Downloads/images/"
 
 # https://gist.github.com/erans/983821
 def get_exif_data(image):
