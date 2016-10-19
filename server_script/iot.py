@@ -3,11 +3,13 @@ import os
 import re
 import PIL.Image
 import csv
+import shutil
 from PIL.ExifTags import TAGS, GPSTAGS
 from geopy.geocoders import Nominatim
 
 upload_dir_path = "/home/dviterig/Downloads/images/"
 upload_dir_path_no_space = "/home/dviterig/Downloads/images/"
+old_dir_path = "/home/dviterig/Downloads/images_old/"
 
 # https://gist.github.com/erans/983821
 def get_exif_data(image):
@@ -201,9 +203,11 @@ for pic_name in new_pictures:
             else:
                 print("No dutch license plate detected")
 
-
         # check if matches data from db
         # notify user
         # put data in .csv
     else:
         print(output_string)
+
+for pic_name in new_pictures: #move pics to old_images directory
+    shutil.move(upload_dir_path + pic_name, old_dir_path)
