@@ -116,16 +116,20 @@ def remove_spaces():
         os.rename(os.path.join(upload_dir_path, picture_name), os.path.join(upload_dir_path, picture_name.replace(' ', '-')))
 
 
-def get_lp_and_confidence(data):
+def get_lp_and_confidence(data, second_lp):
     # data = "plate0: 10 results \n\t- H786P0J\tconfidence: 89.8356\n\t- H786POJ\t confidence: 87.6114\n"
+    lp_correct = 0
     line = data.split("\n")
-    lp = re.search('- (.*)\t', line[1])
-    conf = re.search('confidence: (.*)', line[1])
-    lp_string = lp.group(1)
-    conf_float = float(conf.group(1))
-    print(lp_string)
-    print(conf_float)
-    return lp_string, conf_float
+    for i in range(1,4):#check the first 3 lp's in the data in order to look for a dutch lp
+        lp = re.search('- (.*)\t', line[i+second_lp])
+        conf = re.search('confidence: (.*)', line[i+second_lp])
+        lp_string = lp.group(1)
+        conf_float = float(conf.group(1))
+        if len(lp_string) == 6:#if not dutch lp length -> lp incorrect
+            lp_correct = 1
+            break
+
+    return lp_string, conf_float, lp_correct
 
 
 def get_address(lat, lon):
@@ -157,7 +161,6 @@ def csv_write(list):
         csv_writer = csv.writer(csvfile, delimiter=',')
         csv_writer.writerow(list)
 
-
 new_pictures = os.listdir(upload_dir_path)
 # bash and python handle spaces differently,
 # remove all spaces from picture names
@@ -166,18 +169,38 @@ new_pictures = os.listdir(upload_dir_path)
 print("IOT-license plate recognition example")
 for pic_name in new_pictures:
     print(pic_name)
-    full_command = "alpr -n 1 -c eu " + upload_dir_path_no_space + pic_name
+    full_command = "alpr -c eu " + upload_dir_path_no_space + pic_name
     output, err = run_script(full_command)
     output_string = output.decode(encoding='utf-8')
     if "results" in output_string:
         # strip location + time + date
-        lp, conf = get_lp_and_confidence(output_string)
-        exif_data = get_exif(pic_name)
-        lat, lon = get_lat_lon(exif_data)
-        address = get_address_by_gps(lat, lon)
-        time = get_time_pic_taken(exif_data)
-        data_list = [lp, conf, lat, lon, address, time]
-        csv_write(data_list)
+        print (output_string)
+        lp, conf, lp_ok = get_lp_and_confidence(output_string, 0)
+        if lp_ok == 1:
+            print("License plate detected: %s, confidence: %s  " % (lp, conf))
+            exif_data = get_exif(pic_name)
+            lat, lon = get_lat_lon(exif_data)
+            address = get_address_by_gps(lat, lon)
+            time = get_time_pic_taken(exif_data)
+            data_list = [lp, conf, lat, lon, address, time]
+            csv_write(data_list)
+        else:
+            print("No dutch license plate detected")
+
+        if (len(output_string) > 400):  #in case of second lp in the picture
+            print("2 license plates detected!!!")
+            lp, conf, lp_ok = get_lp_and_confidence(output_string, 11)
+            if lp_ok == 1:
+                print("License plate detected: %s, confidence: %s  " % (lp, conf))
+                exif_data = get_exif(pic_name)
+                lat, lon = get_lat_lon(exif_data)
+                address = get_address_by_gps(lat, lon)
+                time = get_time_pic_taken(exif_data)
+                data_list = [lp, conf, lat, lon, address, time]
+                csv_write(data_list)
+            else:
+                print("No dutch license plate detected")
+
 
         # check if matches data from db
         # notify user
