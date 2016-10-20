@@ -6,8 +6,19 @@ import csv
 from PIL.ExifTags import TAGS, GPSTAGS
 from geopy.geocoders import Nominatim
 
-upload_dir_path = "/home/jeffrey/Dropbox/Camera Uploads/"
-upload_dir_path_no_space = "/home/jeffrey/Dropbox/Camera\ Uploads/"
+import emailer
+import pathnames
+
+upload_dir_path = pathnames.upload_dir_path
+upload_dir_path_no_space = pathnames.upload_dir_path_no_space
+
+def tx_email(message_data):
+    emailer.server.ehlo()
+    emailer.server.starttls()
+    emailer.server.login(emailer.username, emailer.password)
+    emailer.server.sendmail(emailer.fromaddr, emailer.toaddrs, message_data)
+    emailer.server.quit()
+
 
 # https://gist.github.com/erans/983821
 def get_exif_data(image):
@@ -163,6 +174,10 @@ new_pictures = os.listdir(upload_dir_path)
 # remove all spaces from picture names
 remove_spaces()
 new_pictures = os.listdir(upload_dir_path)
+all_data_string = "\n"
+k = ","
+n = "\n"
+t = "\t"
 print("IOT-license plate recognition example")
 for pic_name in new_pictures:
     print(pic_name)
@@ -178,9 +193,22 @@ for pic_name in new_pictures:
         time = get_time_pic_taken(exif_data)
         data_list = [lp, conf, lat, lon, address, time]
         csv_write(data_list)
+        append_to_mail = pic_name+": "+"found a lp!"+n+"lp is: "+t+str(lp)+n+"conf: "+t+str(conf)+n+"adrs: "+t+str(address)+n+"time:"+t+str(time)+n
 
         # check if matches data from db
         # notify user
         # put data in .csv
     else:
         print(output_string)
+        append_to_mail = pic_name+": "+"Could not find a lp"+n
+    all_data_string += append_to_mail + "\n"
+
+print(all_data_string)
+
+
+msg = """From: <transmitter@...com>
+To: <receiver@...com>
+Subject: IOT - license plates scan results:
+
+""" + all_data_string
+tx_email(msg)
