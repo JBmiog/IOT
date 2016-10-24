@@ -11,9 +11,23 @@ import pathnames
 
 upload_dir_path = pathnames.upload_dir_path
 upload_dir_path_no_space = pathnames.upload_dir_path_no_space
+move_here_if_success = pathnames.move_here_if_success
+move_here_if_fail = pathnames.move_here_if_fail
 
+LP_POS = 0
+CONFIDENCE_POS = 1
+LAT_POS = 2
+LON_POS = 3
+ADDRESS_POS = 4
+TIME_POS = 5
+NAME_POS = 6
+
+k = ","
+n = "\n"
+t = "\t"
+
+emailer.server.ehlo()
 def tx_email(message_data):
-    emailer.server.ehlo()
     emailer.server.starttls()
     emailer.server.login(emailer.username, emailer.password)
     emailer.server.sendmail(emailer.fromaddr, emailer.toaddrs, message_data)
@@ -128,23 +142,28 @@ def remove_spaces():
 
 
 def get_lp_and_confidence(data):
-    # data = "plate0: 10 results \n\t- H786P0J\tconfidence: 89.8356\n\t- H786POJ\t confidence: 87.6114\n"
-    line = data.split("\n")
-    lp = re.search('- (.*)\t', line[1])
-    conf = re.search('confidence: (.*)', line[1])
-    lp_string = lp.group(1)
-    conf_float = float(conf.group(1))
-    print(lp_string)
-    print(conf_float)
-    return lp_string, conf_float
+    lines = data.split("\n")
+    for line in lines:
+        #line_str = line.encode('ascii', 'ignore')
+        if "pattern_match: 1" in line:
+            line = line.encode('ASCII')
+            lp = re.search("- (.*)\t conf", line)
+            conf = re.search('confidence: (.*)\t patt', line)
+            lp_string = lp.group(1)
+            conf_float = float(conf.group(1))
+            return lp_string, conf_float
 
 
 def get_address(lat, lon):
     if (lat != None and lon != None):
         location_string = (str(lat) + ', ' + str(lon))
-        print(location_string)
+        # print(location_string)
         geolocator = Nominatim()
-        location = geolocator.reverse(location_string)
+        try:
+            location = geolocator.reverse(location_string)
+        except:
+            print("could not resolve location")
+            return("no location known")
         return location.address
     else:
         return "not available"
@@ -169,46 +188,109 @@ def csv_write(list):
         csv_writer.writerow(list)
 
 
-new_pictures = os.listdir(upload_dir_path)
-# bash and python handle spaces differently,
-# remove all spaces from picture names
-remove_spaces()
-new_pictures = os.listdir(upload_dir_path)
-all_data_string = "\n"
-k = ","
-n = "\n"
-t = "\t"
+# function that searchers the csv db for a
+# given license plate and returns
+# the results in a dict
+def csv_check_match_lp(licsene_plate):
+    i = 1
+    dict = {}
+    with open('lp_db.csv', 'rt') as csvfile:
+        csv_reader = csv.reader(csvfile, delimiter=',')
+        for row in csv_reader:
+            if row[0] == licsene_plate:
+                dict[i] = row
+                i+=1
+    return dict
+
+ENABLE_MOVING_FILES = 0
+ENABLE_EMAILING = 1
+ENABLE_DB_WRITE = 1
+ENABLE_MATCH_SEARCH = 1
+
+def search_csv_for_match(license_plate):
+    string = ""
+    matches = csv_check_match_lp("GZVX47")
+    if matches != {}:
+        string = ("We have a logged history of this licenseplate:" + n)
+        for row in matches:
+            string += ("location:"+t+matches[row][ADDRESS_POS]+n)
+            string += ("date     "+t+matches[row][TIME_POS]+n)
+    return string
+
 print("IOT-license plate recognition example")
-for pic_name in new_pictures:
-    print(pic_name)
-    full_command = "alpr -n 1 -c eu " + upload_dir_path_no_space + pic_name
-    output, err = run_script(full_command)
-    output_string = output.decode(encoding='utf-8')
-    if "results" in output_string:
-        # strip location + time + date
-        lp, conf = get_lp_and_confidence(output_string)
-        exif_data = get_exif(pic_name)
-        lat, lon = get_lat_lon(exif_data)
-        address = get_address_by_gps(lat, lon)
-        time = get_time_pic_taken(exif_data)
-        data_list = [lp, conf, lat, lon, address, time]
-        csv_write(data_list)
-        append_to_mail = pic_name+": "+"found a lp!"+n+"lp is: "+t+str(lp)+n+"conf: "+t+str(conf)+n+"adrs: "+t+str(address)+n+"time:"+t+str(time)+n
+while(1):
+    if ENABLE_DB_WRITE:
+        file_oploaded = 0
+        # bash and python handle spaces differently,
+        # remove all spaces from picture names
+        remove_spaces()
+        new_pictures = os.listdir(upload_dir_path)
+        all_data_string = "\n"
+        append_to_mail = ""
+        for pic_name in new_pictures:
+            file_oploaded = 1
+            print(pic_name)
+            full_command = "alpr -n 8 -c eu -p nl " + upload_dir_path_no_space + pic_name
+            output, err = run_script(full_command)
+            output_string = output.decode(encoding='utf-8')
+            print(output_string)
+            if "results" in output_string:
+                if "pattern_match: 1" in output_string:
 
-        # check if matches data from db
-        # notify user
-        # put data in .csv
-    else:
-        print(output_string)
-        append_to_mail = pic_name+": "+"Could not find a lp"+n
-    all_data_string += append_to_mail + "\n"
+                    # strip location + time + date
+                    lp, conf = get_lp_and_confidence(output_string)
+                    exif_data = get_exif(pic_name)
+                    lat, lon = get_lat_lon(exif_data)
+                    address = get_address_by_gps(lat, lon)
+                    timestamp = get_time_pic_taken(exif_data)
 
-print(all_data_string)
+                    if ENABLE_MOVING_FILES:
+                        os.rename(upload_dir_path + pic_name, move_here_if_success+pic_name)
+                    # check if matches data from db
+                    if ENABLE_MATCH_SEARCH:
+                        matches = search_csv_for_match(lp)
+
+                    # gather info to e-mail
+                    append_to_mail = pic_name + ": " + "found a lp!" + n
+                    append_to_mail += "lp is: " + t + str(lp) + n
+                    append_to_mail += "conf:  " + t + str(conf) + n
+                    append_to_mail += "adrs:  " + t + str(address) + n
+                    append_to_mail += "time:  " + t + str(timestamp) + n
+
+                    # check if matches data from db
+                    if ENABLE_MATCH_SEARCH:
+                        matches = search_csv_for_match(lp)
+                        append_to_mail += "--history--" + n + matches
+                        append_to_mail += "-----------" + n
+
+                    # put data in .csv
+                    data_list = [lp, conf, lat, lon, address, time]
+                    csv_write(data_list)
+
+                else:
+                    append_to_mail = pic_name + ": " + "Could not find a dutch lp" + n
+                    if ENABLE_MOVING_FILES:
+                        os.rename(upload_dir_path + pic_name, move_here_if_fail + pic_name)
+
+            else:
+                print(output_string)
+                append_to_mail = pic_name+": "+"Could not find a lp"+n
+                if ENABLE_MOVING_FILES:
+                    os.rename(upload_dir_path + pic_name, move_here_if_fail + pic_name)
+
+            all_data_string += append_to_mail + "\n"
+
+        print(all_data_string)
 
 
-msg = """From: <transmitter@...com>
-To: <receiver@...com>
-Subject: IOT - license plates scan results:
+        msg = """From: <iotproject.tudelft@gmail.com >
+        To: <jeffrey.miog@gmail.com>
+        Subject: IOT - license plates scan results:
 
-""" + all_data_string
-tx_email(msg)
+        """ + all_data_string
+        if(ENABLE_EMAILING and file_oploaded == 1):
+            tx_email(msg)
+
+
+    print("round done")
+    time.sleep(20)
