@@ -104,7 +104,7 @@ def get_lat_lon(exif_data):
                 lon = 0 - lon
 
     return lat, lon
-
+ 
 
 def get_time_pic_taken(exif_data):
     if "DateTimeOriginal" in exif_data:
