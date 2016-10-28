@@ -3,13 +3,36 @@ import os
 import re
 import PIL.Image
 import csv
-import shutil
 from PIL.ExifTags import TAGS, GPSTAGS
 from geopy.geocoders import Nominatim
 
-upload_dir_path = "/home/dviterig/Downloads/images/"
-upload_dir_path_no_space = "/home/dviterig/Downloads/images/"
-old_dir_path = "/home/dviterig/Downloads/images_old/"
+import emailer
+import pathnames
+
+upload_dir_path = pathnames.upload_dir_path
+upload_dir_path_no_space = pathnames.upload_dir_path_no_space
+move_here_if_success = pathnames.move_here_if_success
+move_here_if_fail = pathnames.move_here_if_fail
+
+LP_POS = 0
+CONFIDENCE_POS = 1
+LAT_POS = 2
+LON_POS = 3
+ADDRESS_POS = 4
+TIME_POS = 5
+NAME_POS = 6
+
+k = ","
+n = "\n"
+t = "\t"
+
+emailer.server.ehlo()
+def tx_email(message_data):
+    emailer.server.starttls()
+    emailer.server.login(emailer.username, emailer.password)
+    emailer.server.sendmail(emailer.fromaddr, emailer.toaddrs, message_data)
+    emailer.server.quit()
+
 
 # https://gist.github.com/erans/983821
 def get_exif_data(image):
@@ -118,28 +141,28 @@ def remove_spaces():
         os.rename(os.path.join(upload_dir_path, picture_name), os.path.join(upload_dir_path, picture_name.replace(' ', '-')))
 
 
-def get_lp_and_confidence(data, second_lp):
-    # data = "plate0: 10 results \n\t- H786P0J\tconfidence: 89.8356\n\t- H786POJ\t confidence: 87.6114\n"
-    lp_correct = 0
-    line = data.split("\n")
-    for i in range(1,4):#check the first 3 lp's in the data in order to look for a dutch lp
-        lp = re.search('- (.*)\t', line[i+second_lp])
-        conf = re.search('confidence: (.*)', line[i+second_lp])
-        lp_string = lp.group(1)
-        conf_float = float(conf.group(1))
-        if len(lp_string) == 6:#if not dutch lp length -> lp incorrect
-            lp_correct = 1
-            break
-
-    return lp_string, conf_float, lp_correct
+def get_lp_and_confidence(data, n_lp, m_nf):
+    lines = data.split("\n")
+    for i in range(1,10):
+        if "pattern_match: 1" in lines[i + 9*n_lp]:
+            m_nf = 0
+            lp = re.search("- (.*)\t conf", lines[i + 9*n_lp])
+            conf = re.search('confidence: (.*)\t patt', lines[i + 9*n_lp])
+            lp_string = lp.group(1)
+            conf_float = float(conf.group(1))
+            return lp_string, conf_float, m_nf
 
 
 def get_address(lat, lon):
     if (lat != None and lon != None):
         location_string = (str(lat) + ', ' + str(lon))
-        print(location_string)
+        # print(location_string)
         geolocator = Nominatim()
-        location = geolocator.reverse(location_string)
+        try:
+            location = geolocator.reverse(location_string)
+        except:
+            print("could not resolve location")
+            return("no location known")
         return location.address
     else:
         return "not available"
@@ -163,51 +186,121 @@ def csv_write(list):
         csv_writer = csv.writer(csvfile, delimiter=',')
         csv_writer.writerow(list)
 
-new_pictures = os.listdir(upload_dir_path)
-# bash and python handle spaces differently,
-# remove all spaces from picture names
-remove_spaces()
-new_pictures = os.listdir(upload_dir_path)
+
+# function that searchers the csv db for a
+# given license plate and returns
+# the results in a dict
+def csv_check_match_lp(licsene_plate):
+    i = 1
+    dict = {}
+    with open('lp_db.csv', 'rt') as csvfile:
+        csv_reader = csv.reader(csvfile, delimiter=',')
+        for row in csv_reader:
+            if row[0] == licsene_plate:
+                dict[i] = row
+                i+=1
+    return dict
+
+ENABLE_MOVING_FILES = 0
+ENABLE_EMAILING = 1
+ENABLE_DB_WRITE = 1
+ENABLE_MATCH_SEARCH = 1
+
+def search_csv_for_match(license_plate):
+    string = ""
+    matches = csv_check_match_lp("GZVX47")
+    if matches != {}:
+        string = ("We have a logged history of this licenseplate:" + n)
+        for row in matches:
+            string += ("location:"+t+matches[row][ADDRESS_POS]+n)
+            string += ("date     "+t+matches[row][TIME_POS]+n)
+    return string
+
 print("IOT-license plate recognition example")
-for pic_name in new_pictures:
-    print(pic_name)
-    full_command = "alpr -c eu " + upload_dir_path_no_space + pic_name
-    output, err = run_script(full_command)
-    output_string = output.decode(encoding='utf-8')
-    if "results" in output_string:
-        # strip location + time + date
-        print (output_string)
-        lp, conf, lp_ok = get_lp_and_confidence(output_string, 0)
-        if lp_ok == 1:
-            print("License plate detected: %s, confidence: %s  " % (lp, conf))
-            exif_data = get_exif(pic_name)
-            lat, lon = get_lat_lon(exif_data)
-            address = get_address_by_gps(lat, lon)
-            time = get_time_pic_taken(exif_data)
-            data_list = [lp, conf, lat, lon, address, time]
-            csv_write(data_list)
-        else:
-            print("No dutch license plate detected")
+while(1):
+    if ENABLE_DB_WRITE:
+        file_oploaded = 0
+        # bash and python handle spaces differently,
+        # remove all spaces from picture names
+        remove_spaces()
+        new_pictures = os.listdir(upload_dir_path)
+        all_data_string = "\n"
+        append_to_mail = ""
+        for pic_name in new_pictures:
+            file_oploaded = 1
+            print(pic_name)
+            full_command = "alpr -n 8 -c eu -p nl " + upload_dir_path_no_space + pic_name
+            output, err = run_script(full_command)
+            output_string = output.decode(encoding='utf-8')
+            print(output_string)
+            append_to_mail = "";#empty varaible for every picture
+            if "results" in output_string:
+                #number_lp: number of lp in the picture
+                match_nf = 1 #Initialise "match_nf"
+                if "plate2" in output_string:
+                    number_lp = 3
+                elif "plate1" in output_string:
+                    number_lp = 2
+                elif "plate0" in output_string:
+                    number_lp = 1
+                else:
+                    number_lp = 0
+                #
+                while(number_lp > 0):
+                    number_lp -= 1
+                    lp, conf, match_nf = get_lp_and_confidence(output_string, number_lp, match_nf)
+                    exif_data = get_exif(pic_name)
+                    lat, lon = get_lat_lon(exif_data)
+                    address = get_address_by_gps(lat, lon)
+                    timestamp = get_time_pic_taken(exif_data)
 
-        if (len(output_string) > 400):  #in case of second lp in the picture
-            print("2 license plates detected!!!")
-            lp, conf, lp_ok = get_lp_and_confidence(output_string, 11)
-            if lp_ok == 1:
-                print("License plate detected: %s, confidence: %s  " % (lp, conf))
-                exif_data = get_exif(pic_name)
-                lat, lon = get_lat_lon(exif_data)
-                address = get_address_by_gps(lat, lon)
-                time = get_time_pic_taken(exif_data)
-                data_list = [lp, conf, lat, lon, address, time]
-                csv_write(data_list)
+                    if ENABLE_MOVING_FILES:
+                        os.rename(upload_dir_path + pic_name, move_here_if_success+pic_name)
+
+                    # gather info to e-mail
+                    append_to_mail += pic_name + ": " + "found a lp!" + n
+                    append_to_mail += "lp is: " + t + str(lp) + n
+                    append_to_mail += "conf:  " + t + str(conf) + n
+                    append_to_mail += "adrs:  " + t + str(address) + n
+                    append_to_mail += "time:  " + t + str(timestamp) + n
+
+                    # check if matches data from db
+                    if ENABLE_MATCH_SEARCH:
+                        matches = search_csv_for_match(lp)
+                        append_to_mail += "--history--" + n + matches
+                        append_to_mail += "-----------" + n
+
+                    # put data in .csv
+                    data_list = [lp, conf, lat, lon, address, time]
+                    csv_write(data_list)
+                #end while  
+
+                if match_nf:
+                    append_to_mail = pic_name + ": " + "Could not find a dutch lp" + n
+                    if ENABLE_MOVING_FILES:
+                        os.rename(upload_dir_path + pic_name, move_here_if_fail + pic_name)
+
+
             else:
-                print("No dutch license plate detected")
+                print(output_string)
+                append_to_mail = pic_name+": "+"Could not find a lp"+n
+                if ENABLE_MOVING_FILES:
+                    os.rename(upload_dir_path + pic_name, move_here_if_fail + pic_name)
 
-        # check if matches data from db
-        # notify user
-        # put data in .csv
-    else:
-        print(output_string)
+            all_data_string += append_to_mail + "\n"
 
-for pic_name in new_pictures: #move pics to old_images directory
-    shutil.move(upload_dir_path + pic_name, old_dir_path)
+        print(all_data_string)
+
+
+        msg = """From: <iotproject.tudelft@gmail.com >
+        To: <dviterig@gmail.com>
+        Subject: IOT - license plates scan results:
+
+        """ + all_data_string
+        if(ENABLE_EMAILING and file_oploaded == 1):
+            tx_email(msg)
+
+
+    print("round done")
+    #time.sleep(20)
+    break
