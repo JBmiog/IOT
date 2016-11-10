@@ -1,4 +1,9 @@
+
 from geopy.geocoders import Nominatim
+
+def get_address_by_gps(lat, lon):
+    found_address = get_address(lat, lon)
+    return found_address
 
 def get_address(lat, lon):
     if (lat != None and lon != None):
@@ -8,8 +13,7 @@ def get_address(lat, lon):
         try:
             location = geolocator.reverse(location_string)
         except:
-            print("could not resolve location")
-            return("no location known")
+            return "no address known"
         return location.address
     else:
-        return "not available"
+        return "no address known"
