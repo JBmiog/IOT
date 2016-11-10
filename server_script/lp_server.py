@@ -91,17 +91,22 @@ while(1):
     time.sleep(20)
 
 import alpr_handler
+import exif_reader
 
 class LpServer():
 
     def get_lp(self, picture_path):
         self.lp, self.conf = alpr_handler(picture_path)
+        if self.lp != "0" && self.conf != 0:
+            return 1
+        else:
+            return 0
 
     def get_exif(self, picture_path):
         time, gps = exif_reader.get_exif()
 
-    def get_location(self, exif):
-        return geolocator.get_address(gps)
+    def get_address(self, lat, lon):
+        return geolocator.get_address(lat, lon)
 
     def db_io(self):
         db_write(record)

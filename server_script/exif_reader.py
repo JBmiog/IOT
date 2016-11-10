@@ -48,6 +48,18 @@ def _convert_to_degress(value):
 
     return d + (m / 60.0) + (s / 3600.0)
 
+
+def get_exif(pic_path):
+    img = PIL.Image.open(pic_path)
+    exif_d = get_exif_data(img)
+    return exif_d
+
+# https://gist.github.com/erans/983821
+def _get_if_exist(data, key):
+    if key in data:
+        return data[key]
+    return None
+
 # https://gist.github.com/erans/983821
 def get_exif_data(image):
     """Returns a dictionary from the exif data of an PIL Image item. Also converts the GPS Tags"""
@@ -68,21 +80,5 @@ def get_exif_data(image):
 
     return exif_data
 
-# https://gist.github.com/erans/983821
-def _get_if_exist(data, key):
-    if key in data:
-        return data[key]
 
-    return None
-
-
-def get_exif(pic_name):
-    img = PIL.Image.open(upload_dir_path + pic_name)
-    exif_d = get_exif_data(img)
-    return exif_d
-
-
-def get_address_by_gps(lat, lon):
-    found_address = get_address(lat, lon)
-    return found_address
 
