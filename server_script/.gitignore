@@ -1,6 +1,10 @@
 
 pathnames.py
 pathnames.pyc
+emailer.py
 emailer.pyc
-pathnames.pyc
+
+csv-test.csv
+lp_db.csv
+
 
