@@ -17,10 +17,13 @@ class PictureHandler:
     confidence = None
     license_plate_record = None
     picture_path_no_space = None
+    db_path = None
 
-    def __init__(self, picture_path):
+    def __init__(self, picture_path, db_path=None):
         self.picture_path = picture_path
         self.picture_path_no_space = str(picture_path).replace("\\", "")
+        if db_path is not None:
+            self.db_path = db_path
 
     def get_lp(self):
         self.license_plate, self.confidence = alpr_handler(self.picture_path)
@@ -38,13 +41,14 @@ class PictureHandler:
         self.address = geolocator_handler.get_address(self.gps_latitude, self.gps_longitude)
 
     def db_match_check(self):
-        self.license_plate_record = db_handler.get_matches(self.license_plate, pathnames.db_location)
+        self.license_plate_record = db_handler.get_matches(self.license_plate, self.db_path)
 
     def db_write(self):
-        csv_format_data = str(self.license_plate) + "," + str(self.confidence) + ","
-        csv_format_data += str(self.gps_latitude) + "," + str(self.gps_longitude) + ","
-        csv_format_data += str(self.address) + ","+ str(self.time_stamp)
-        db_handler.db_write(csv_format_data, pathnames.db_test_location)
+        csv_format_data = [
+            self.license_plate, self.confidence, self.gps_latitude,
+            self.gps_longitude, self.address, self.time_stamp]
+        print("write in db")
+        db_handler.db_write(csv_format_data, self.db_path)
 
     def info_extract_procedure(self):
         # alpr needs with \\ as space
@@ -70,5 +74,5 @@ class PictureHandler:
             string += "--------------------------------------------------\n"
             string += "previous records:" + str(self.license_plate_record)
         else:
-            string = "could not find lp in picture at location:, ", self.picture_path
+            string = "could not find lp in picture at location: ", self.picture_path
         return string

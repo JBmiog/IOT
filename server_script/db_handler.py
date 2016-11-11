@@ -23,6 +23,7 @@ def get_matches(license_plate, db_path):
     with open(db_path, 'rt') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         for row in csv_reader:
+            print(row)
             if row[0] == license_plate:
                 dict[i] = row
                 i += 1

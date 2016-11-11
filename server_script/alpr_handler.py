@@ -1,6 +1,7 @@
 import re
 import piping_handler
 
+
 def get_lp_and_confidence(path_to_picture):
     full_command = "alpr -n 8 -c eu -p nl " + path_to_picture
     try:
@@ -10,6 +11,7 @@ def get_lp_and_confidence(path_to_picture):
         return None, None
 
     output = output.decode(encoding='utf-8')
+
     if "results" in output:
         lines = output.split("\n")
         for line in lines:
