@@ -8,6 +8,7 @@ import pathnames
 
 class PictureHandler:
     lp_found = 0
+    found_record = 0
     picture_path = None
     time_stamp = None
     gps_longitude = None
@@ -18,6 +19,7 @@ class PictureHandler:
     license_plate_record = None
     picture_path_no_space = None
     db_path = None
+
 
     def __init__(self, picture_path, db_path=None):
         self.picture_path = picture_path
@@ -41,7 +43,7 @@ class PictureHandler:
         self.address = geolocator_handler.get_address(self.gps_latitude, self.gps_longitude)
 
     def db_match_check(self):
-        self.license_plate_record = db_handler.get_matches(self.license_plate, self.db_path)
+        self.found_record, self.license_plate_record = db_handler.get_matches(self.license_plate, self.db_path)
 
     def db_write(self):
         csv_format_data = [
@@ -65,14 +67,27 @@ class PictureHandler:
 
     def format_info_to_string(self):
         if self.lp_found:
-            string =  "Plate numb:\t\t" + str(self.license_plate) + "\n"
+            string = "--------------------------------------------------\n"
+            string += "Plate numb:\t\t" + str(self.license_plate) + "\n"
             string += "Confidence:\t\t" + str(self.confidence) + "\n"
             string += "Time spotted:\t" + str(self.time_stamp) + "\n"
             string += "Address:\t\t" + str(self.address) + "\n"
             string += "Gps latitude:\t" + str(self.gps_latitude) + "\n"
             string += "Gps longitude:\t" + str(self.gps_longitude) + "\n"
-            string += "--------------------------------------------------\n"
-            string += "previous records:" + str(self.license_plate_record)
+            string += "File path:\t\t" + str(self.picture_path) + "\n"
+            if self.found_record != 1:
+                string += "previous records:" + "\n"
+                string += "records:\t" + str(self.found_record - 1) + "\n"
+                for record in range(1, self.found_record):
+                    string += "-------" + "\n"
+                    string += "record:\t" + str(record) + "\n"
+                    string += "time:\t\t" + str(self.license_plate_record[record][5] + "\n")
+                    string += "location:\t" + str(self.license_plate_record[record][4] + "\n")
+                    string += "-------" + "\n"
+                string += "--------------------------------------------------\n"
+            else:
+                string += "no previous records known" + "\n"
+                string += "--------------------------------------------------\n"
         else:
             string = "could not find lp in picture at location: ", self.picture_path
         return string

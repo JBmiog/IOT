@@ -16,6 +16,6 @@ class DbHandlerTest(unittest.TestCase):
     def test_get_matches(self):
         data = [self.lp, self.address]
         db_handler.db_write(data, self.db_path)
-        result = db_handler.get_matches(self.lp, self.db_path)
+        match, result = db_handler.get_matches(self.lp, self.db_path)
         self.assertIsNotNone(result)
 

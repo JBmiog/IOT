@@ -19,12 +19,13 @@ def db_write(csv_str_data, db_path):
 # the results in a dictionary
 def get_matches(license_plate, db_path):
     i = 1
+    found_match = 0
     dict = {}
     with open(db_path, 'rt') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         for row in csv_reader:
-            print(row)
             if row[0] == license_plate:
+                found_match += 1
                 dict[i] = row
                 i += 1
-    return dict
+    return found_match, dict
