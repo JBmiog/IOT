@@ -1,6 +1,7 @@
 import fcntl
 import os
 import signal
+import email_handler
 import pathnames
 from picture_handler import PictureHandler
 
@@ -36,6 +37,8 @@ def new_pic_handler(signum, frame):
 
 
 def process_images(pic_path_name, db_path_name):
+    # we will append the data behind the subject of the email.
+    e_mail_message = "Subject: License plates scan results\n\n"
     # get list of pictures
     new_pictures_names = os.listdir(pic_path_name)
     path_name_space_corrected = pic_path_name.replace(" ", "\ ")
@@ -47,7 +50,15 @@ def process_images(pic_path_name, db_path_name):
                 ph.db_write()
             if ENABLE_MATCH_SEARCH:
                 ph.db_match_check()
-        print(ph.format_info_to_string())
+            if ENABLE_MOVING_FILES:
+                os.rename(pic_path_name+pic_name, pathnames.move_here_if_success + pic_name)
+        else:
+            if ENABLE_MOVING_FILES:
+                os.rename(pic_path_name + pic_name, pathnames.move_here_if_fail + pic_name)
+        e_mail_message += str(ph.format_info_to_string())
+    if ENABLE_EMAILING:
+        eh = email_handler.Emailer()
+        eh.tx_email(e_mail_message)
 
 
 def set_file_change_interrupt():

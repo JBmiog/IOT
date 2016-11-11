@@ -67,21 +67,21 @@ class PictureHandler:
 
     def format_info_to_string(self):
         if self.lp_found:
-            string = "--------------------------------------------------\n"
-            string += "Plate numb:\t\t" + str(self.license_plate) + "\n"
-            string += "Confidence:\t\t" + str(self.confidence) + "\n"
-            string += "Time spotted:\t" + str(self.time_stamp) + "\n"
-            string += "Address:\t\t" + str(self.address) + "\n"
-            string += "Gps latitude:\t" + str(self.gps_latitude) + "\n"
-            string += "Gps longitude:\t" + str(self.gps_longitude) + "\n"
-            string += "File path:\t\t" + str(self.picture_path) + "\n"
+            string = "\n--------------------------------------------------\n"
+            string += "Plate numb:\t" + str(self.license_plate) + "\n"
+            string += "Confidence:\t" + str(self.confidence) + "\n"
+            string += "Time spott:\t" + str(self.time_stamp) + "\n"
+            string += "Address   :\t" + str(self.address) + "\n"
+            string += "Gps latitu:\t" + str(self.gps_latitude) + "\n"
+            string += "Gps longit:\t" + str(self.gps_longitude) + "\n"
+            string += "File path :\t" + str(self.picture_path) + "\n"
             if self.found_record != 1:
                 string += "previous records:" + "\n"
-                string += "records:\t" + str(self.found_record - 1) + "\n"
+                string += "records   :\t" + str(self.found_record - 1) + "\n"
                 for record in range(1, self.found_record):
                     string += "-------" + "\n"
-                    string += "record:\t" + str(record) + "\n"
-                    string += "time:\t\t" + str(self.license_plate_record[record][5] + "\n")
+                    string += "record  :\t" + str(record) + "\n"
+                    string += "time    :\t" + str(self.license_plate_record[record][5] + "\n")
                     string += "location:\t" + str(self.license_plate_record[record][4] + "\n")
                     string += "-------" + "\n"
                 string += "--------------------------------------------------\n"
@@ -89,5 +89,7 @@ class PictureHandler:
                 string += "no previous records known" + "\n"
                 string += "--------------------------------------------------\n"
         else:
-            string = "could not find lp in picture at location: ", self.picture_path
+            string  = "\n--------------------------------------------------\n"
+            string += "could not find lp in pidddcture: " + str(self.picture_path)
+            string += "\n--------------------------------------------------\n"
         return string
