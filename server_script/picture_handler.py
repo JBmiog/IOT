@@ -23,10 +23,8 @@ class PictureHandler:
     def get_lp(self):
         self.license_plate, self.confidence = alpr_handler(self.picture_path)
         if self.lp is not None and self.conf is not None:
-            self.lp_found = 1
             return 1
         else:
-            self.lp_found = 0
             return 0
 
     def get_exif(self):
@@ -45,7 +43,7 @@ class PictureHandler:
 
     def info_extract_procedure(self):
         self.license_plate, self.confidence = alpr_handler.get_lp_and_confidence(self.picture_path)
-        if self.license_plate != "0":
+        if self.license_plate is not None:
             self.get_exif()
             self.get_address()
             self.db_match_check()
