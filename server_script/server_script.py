@@ -5,10 +5,11 @@ import email_handler
 import pathnames
 from picture_handler import PictureHandler
 
-ENABLE_MOVING_FILES = 0
-ENABLE_EMAILING = 0
-ENABLE_DB_WRITE = 0
-ENABLE_MATCH_SEARCH = 0
+ENABLE_MOVING_FILES = 1
+ENABLE_EMAILING = 1
+ENABLE_DB_WRITE = 1
+ENABLE_MATCH_SEARCH = 1
+ENABLE_DEBUG_INFO = 1
 
 filename = pathnames.upload_dir_path
 
@@ -29,11 +30,11 @@ def fake_handler(signum, frame):
 
 
 def new_pic_handler(signum, frame):
-    print("modification in:", filename)
     signal.signal(signal.SIGIO, fake_handler)
+    print("modification in:", filename)
     remove_spaces(pathnames.upload_dir_path)
+    process_images(pathnames.upload_dir_path, pathnames.db_location)
     set_file_change_interrupt()
-    process_images(pathnames.upload_dir_path)
 
 
 def process_images(pic_path_name, db_path_name):
@@ -46,16 +47,18 @@ def process_images(pic_path_name, db_path_name):
     for pic_name in new_pictures_names:
         ph = PictureHandler(str(path_name_space_corrected + pic_name), db_path_name)
         if ph.info_extract_procedure():
-            if ENABLE_DB_WRITE:
-                ph.db_write()
             if ENABLE_MATCH_SEARCH:
                 ph.db_match_check()
+            if ENABLE_DB_WRITE:
+                ph.db_write()
             if ENABLE_MOVING_FILES:
                 os.rename(pic_path_name+pic_name, pathnames.move_here_if_success + pic_name)
         else:
             if ENABLE_MOVING_FILES:
                 os.rename(pic_path_name + pic_name, pathnames.move_here_if_fail + pic_name)
         e_mail_message += str(ph.format_info_to_string())
+        if ENABLE_DEBUG_INFO:
+            print(ph.format_info_to_string())
     if ENABLE_EMAILING:
         eh = email_handler.Emailer()
         eh.tx_email(e_mail_message)
