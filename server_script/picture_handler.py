@@ -16,9 +16,11 @@ class PictureHandler:
     license_plate = None
     confidence = None
     license_plate_record = None
+    picture_path_no_space = None
 
     def __init__(self, picture_path):
         self.picture_path = picture_path
+        self.picture_path_no_space = str(picture_path).replace("\\", "")
 
     def get_lp(self):
         self.license_plate, self.confidence = alpr_handler(self.picture_path)
@@ -28,7 +30,7 @@ class PictureHandler:
             return 0
 
     def get_exif(self):
-        exif_data = exif_reader.get_exif(self.picture_path)
+        exif_data = exif_reader.get_exif(self.picture_path_no_space)
         self.time_stamp = exif_reader.get_time_pic_taken(exif_data)
         self.gps_latitude, self.gps_longitude = exif_reader.get_lat_lon(exif_data)
 
@@ -38,19 +40,18 @@ class PictureHandler:
     def db_match_check(self):
         self.license_plate_record = db_handler.get_matches(self.license_plate, pathnames.db_location)
 
-    def db_write(self, csv_format_data):
+    def db_write(self):
+        csv_format_data = str(self.license_plate) + "," + str(self.confidence) + ","
+        csv_format_data += str(self.gps_latitude) + "," + str(self.gps_longitude) + ","
+        csv_format_data += str(self.address) + ","+ str(self.time_stamp)
         db_handler.db_write(csv_format_data, pathnames.db_test_location)
 
     def info_extract_procedure(self):
+        # alpr needs with \\ as space
         self.license_plate, self.confidence = alpr_handler.get_lp_and_confidence(self.picture_path)
         if self.license_plate is not None:
             self.get_exif()
             self.get_address()
-            self.db_match_check()
-            self.db_write(
-                str(self.license_plate) + "," + str(self.confidence) + "," + str(self.gps_latitude) + "," +
-                str(self.gps_longitude) + "," + str(self.address) + "," + str(self.time_stamp)
-            )
             self.lp_found = 1
             return 1
         else:
@@ -66,6 +67,8 @@ class PictureHandler:
             string += "Address:\t\t" + str(self.address) + "\n"
             string += "Gps latitude:\t" + str(self.gps_latitude) + "\n"
             string += "Gps longitude:\t" + str(self.gps_longitude) + "\n"
+            string += "--------------------------------------------------\n"
+            string += "previous records:" + str(self.license_plate_record)
         else:
             string = "could not find lp in picture at location:, ", self.picture_path
         return string
