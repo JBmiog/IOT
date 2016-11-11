@@ -3,6 +3,7 @@ import alpr_handler
 import geolocator_handler
 import db_handler
 import exif_reader
+import pathnames
 
 
 class PictureHandler:
@@ -34,16 +35,17 @@ class PictureHandler:
         self.gps_latitude, self.gps_longitude = exif_reader.get_lat_lon(exif_data)
 
     def get_address(self):
-        return geolocator_handler.get_address(self.gps_latitude, self.gps_longitude)
+        self.address = geolocator_handler.get_address(self.gps_latitude, self.gps_longitude)
 
     def db_match_check(self):
-        self.license_plate_record = db_handler.get_matches(self.license_plate)
+        self.license_plate_record = db_handler.get_matches(self.license_plate, pathnames.db_location)
 
     def db_write(self, csv_format_data):
-        self.db_write(csv_format_data)
+        db_handler.db_write(csv_format_data, pathnames.db_test_location)
 
     def info_extract_procedure(self):
-        if alpr_handler.get_lp():
+        self.license_plate, self.confidence = alpr_handler.get_lp_and_confidence(self.picture_path)
+        if self.license_plate != "0":
             self.get_exif()
             self.get_address()
             self.db_match_check()
@@ -51,19 +53,21 @@ class PictureHandler:
                 str(self.license_plate) + "," + str(self.confidence) + "," + str(self.gps_latitude) + "," +
                 str(self.gps_longitude) + "," + str(self.address) + "," + str(self.time_stamp)
             )
+            self.lp_found = 1
             return 1
         else:
             # no lp found
+            self.lp_found = 0
             return 0
 
     def format_info_to_string(self):
         if self.lp_found:
-            string = "plate numb:\t " + str(self.license_plate) + "\n"
-            string += "confidence:\t" + str(self.confidence) + "\n"
-            string += "time spotted:\t" + str(self.time_stamp) + "\n"
-            string += "address:\t" + str(self.address) + "\n"
-            string += "gps latitude:\t" + str(self.gps_latitude) + "\n"
-            string += "gps longitude:\t" + str(self.gps_longitude) + "\n"
+            string =  "Plate numb:\t\t" + str(self.license_plate) + "\n"
+            string += "Confidence:\t\t" + str(self.confidence) + "\n"
+            string += "Time spotted:\t" + str(self.time_stamp) + "\n"
+            string += "Address:\t\t" + str(self.address) + "\n"
+            string += "Gps latitude:\t" + str(self.gps_latitude) + "\n"
+            string += "Gps longitude:\t" + str(self.gps_longitude) + "\n"
         else:
             string = "could not find lp in picture at location:, ", self.picture_path
         return string

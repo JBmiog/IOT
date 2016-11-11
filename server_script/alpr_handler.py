@@ -14,7 +14,6 @@ def get_lp_and_confidence(path_to_picture):
         lines = output.split("\n")
         for line in lines:
             if "pattern_match: 1" in line:
-                print("output")
                 lp = re.search("- (.*)\t conf", line)
                 conf = re.search('confidence: (.*)\t patt', line)
                 lp_string = lp.group(1)

@@ -11,9 +11,9 @@ def get_address(lat, lon):
         # print(location_string)
         geolocator = Nominatim()
         try:
-            location = geolocator.reverse(location_string)
+            return geolocator.reverse(location_string)
         except:
             return "no address known"
-        return location.address
+
     else:
         return "no address known"
