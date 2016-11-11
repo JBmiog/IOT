@@ -1,9 +1,9 @@
 import PIL.Image
 from PIL.ExifTags import TAGS, GPSTAGS
 
+
 # https://gist.github.com/erans/983821
 def get_lat_lon(exif_data):
-    """Returns the latitude and longitude, if available, from the provided exif_data (obtained through get_exif_data above)"""
     lat = None
     lon = None
 
@@ -26,10 +26,12 @@ def get_lat_lon(exif_data):
 
     return lat, lon
 
+
 def get_time_pic_taken(exif_data):
     if "DateTimeOriginal" in exif_data:
         date = exif_data["DateTimeOriginal"]
         return date
+
 
 # https://gist.github.com/erans/983821
 def _convert_to_degress(value):
@@ -54,11 +56,13 @@ def get_exif(pic_path):
     exif_d = get_exif_data(img)
     return exif_d
 
+
 # https://gist.github.com/erans/983821
 def _get_if_exist(data, key):
     if key in data:
         return data[key]
     return None
+
 
 # https://gist.github.com/erans/983821
 def get_exif_data(image):

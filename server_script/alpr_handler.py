@@ -7,7 +7,7 @@ def get_lp_and_confidence(path_to_picture):
         output, err = piping_handler.run_script(full_command)
     except BrokenPipeError as err:
         print("Error running ALPR")
-        return "0", 0
+        return None, None
 
     output = output.decode(encoding='utf-8')
     if "results" in output:
@@ -20,4 +20,4 @@ def get_lp_and_confidence(path_to_picture):
                 lp_string = lp.group(1)
                 conf_float = float(conf.group(1))
                 return lp_string, conf_float
-    return "0", 0
+    return None, None

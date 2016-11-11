@@ -16,6 +16,6 @@ class DbHandlerTest(unittest.TestCase):
     def test_compair_with_write(self):
         data = [self.lp, self.address]
         db_handler.csv_write(data, self.db_path)
-        result = db_handler.csv_check_match_lp(self.lp, self.db_path)
+        result = db_handler.get_matches(self.lp, self.db_path)
         self.assertIsNotNone(result)
 
