@@ -4,6 +4,7 @@ import signal
 import email_handler
 import pathnames
 from picture_handler import PictureHandler
+import _thread
 
 ENABLE_MOVING_FILES = 1
 ENABLE_EMAILING = 1
@@ -37,10 +38,11 @@ def new_pic_handler(signum, frame):
     print("modification in:", filename)
     remove_spaces(pathnames.upload_dir_path)
     set_file_change_interrupt()
-    process_images(pathnames.upload_dir_path, pathnames.db_location)
-
+    # process_images(pathnames.upload_dir_path, pathnames.db_location)
+    _thread.start_new_thread(process_images, (pathnames.upload_dir_path, pathnames.db_location))
 
 def process_images(pic_path_name, db_path_name, pic_fail_path=None, pic_success_path=None, e_mail_message=None):
+    print("a new thread started")
     if pic_fail_path is None:
         pic_fail_path = pathnames.move_here_if_fail
     if pic_success_path is None:
