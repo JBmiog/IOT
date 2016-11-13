@@ -17,7 +17,10 @@ filename = pathnames.upload_dir_path
 def remove_spaces(pathname):
     pic_list = os.listdir(pathname)
     for picture_name in pic_list:
-        os.rename(os.path.join(pathnames.upload_dir_path, picture_name), os.path.join(pathnames.upload_dir_path, picture_name.replace(' ', '-')))
+        try:
+            os.rename(os.path.join(pathnames.upload_dir_path, picture_name), os.path.join(pathnames.upload_dir_path, picture_name.replace(' ', '_')))
+        except FileNotFoundError as err:
+            print("could not rename file; ", err)
 
 
 # so this is bad practice, but I can't seem to disable the interrupt
@@ -33,13 +36,18 @@ def new_pic_handler(signum, frame):
     signal.signal(signal.SIGIO, fake_handler)
     print("modification in:", filename)
     remove_spaces(pathnames.upload_dir_path)
-    process_images(pathnames.upload_dir_path, pathnames.db_location)
     set_file_change_interrupt()
+    process_images(pathnames.upload_dir_path, pathnames.db_location)
 
 
-def process_images(pic_path_name, db_path_name):
-    # we will append the data behind the subject of the email.
-    e_mail_message = "Subject: License plates scan results\n\n"
+def process_images(pic_path_name, db_path_name, pic_fail_path=None, pic_success_path=None, e_mail_message=None):
+    if pic_fail_path is None:
+        pic_fail_path = pathnames.move_here_if_fail
+    if pic_success_path is None:
+        pic_success_path = pathnames.move_here_if_success
+    if e_mail_message is None:
+        # we will append the data behind the subject of the email.
+        e_mail_message = "Subject: License plates scan results\n\n"
     # get list of pictures
     new_pictures_names = os.listdir(pic_path_name)
     path_name_space_corrected = pic_path_name.replace(" ", "\ ")
@@ -52,10 +60,16 @@ def process_images(pic_path_name, db_path_name):
             if ENABLE_DB_WRITE:
                 ph.db_write()
             if ENABLE_MOVING_FILES:
-                os.rename(pic_path_name+pic_name, pathnames.move_here_if_success + pic_name)
+                try:
+                    os.rename(pic_path_name+pic_name, pic_success_path+pic_name)
+                except FileNotFoundError as err:
+                    print("could not move file;", err)
         else:
             if ENABLE_MOVING_FILES:
-                os.rename(pic_path_name + pic_name, pathnames.move_here_if_fail + pic_name)
+                try:
+                    os.rename(pic_path_name + pic_name, pic_fail_path + pic_name)
+                except FileNotFoundError as err:
+                    print("could not move file;", err)
         e_mail_message += str(ph.format_info_to_string())
         if ENABLE_DEBUG_INFO:
             print(ph.format_info_to_string())

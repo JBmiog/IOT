@@ -90,6 +90,6 @@ class PictureHandler:
                 string += "--------------------------------------------------\n"
         else:
             string  = "\n--------------------------------------------------\n"
-            string += "could not find lp in pidddcture: " + str(self.picture_path)
+            string += "could not find lp in picture: " + str(self.picture_path)
             string += "\n--------------------------------------------------\n"
         return string
